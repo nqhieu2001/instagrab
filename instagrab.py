@@ -2,10 +2,14 @@ import requests
 import ConfigParser
 from os.path import splitext,basename,isdir,isfile
 from os import makedirs
-from pprint import pprint
+#from pprint import pprint
+import Queue
+import threading
+from urlparse import urlparse 
 
 url = "https://api.instagram.com/v1/users/%s/feed?access_token=%s"
-
+queue = Queue.Queue()
+#instagram client for making requests
 class Client:
 	access_token = ""
 	MAX = 10
@@ -15,8 +19,9 @@ class Client:
 	base_url_with_max_id = "https://api.instagram.com/v1/users/%s/media/recent?access_token=%s&max_id=%s"
 
 
-	def __init__ (self, access_token, MAX = 10):
+	def __init__ (self, access_token,queue, MAX = 10):
 		self.access_token = access_token
+		self.queue = queue
 		self.MAX = MAX
 
 	def write_config(self,account_id,user_id,last_id):
@@ -46,15 +51,15 @@ class Client:
 			makedirs(account_id)
 			user_id = self.retrieve_user_id(account_id)
 		url = self.build_url(user_id,self.access_token,last_id)
-		#print url
 		while (True):
 			r = requests.get(url)
 			resp = r.json()['data']
 			for item in resp:
 				if item['type'] == 'image':
-					print item['images']['standard_resolution']['url'],
-					print " from ",
-					print item['user']['username']
+					#print item['images']['standard_resolution']['url']
+					self.queue.put(item['images']['standard_resolution']['url']) #queueing images to the downloading queue
+					# print " from ",
+					# print item['user']['username']
 				#update latest image
 				if (last_id == None):
 					last_id = item['id']
@@ -64,7 +69,6 @@ class Client:
 			if not 'next_url' in r.json()['pagination']:
 				break
 			url = r.json()['pagination']['next_url']
-			print url
 		self.write_config(account_id,user_id,last_id)
 
 	def build_url(self,user_id,access_token,min_id = None):
@@ -79,5 +83,38 @@ class Client:
 		return r.json()['data'][0]['id']
 
 
-c = Client("206279665.74069ea.3e7744ba4dfd4d6384661e55ae69d5ed")
-c.collect('socun89')
+
+
+#downloader thread class
+class Downloader(threading.Thread):
+	def __init__(self,queue,path):
+		threading.Thread.__init__(self)
+		self.queue = queue
+		self.path = path
+
+	def run(self):
+		while True:
+			link = self.queue.get()
+			r = requests.get(link,stream=True)
+			if r.status_code == 200:
+				filename = splitext(basename(urlparse(link).path))
+				filename = filename[0] + filename[1]
+				if not isfile(self.path+filename):
+					with open(self.path + filename, 'wb') as f:
+						for chunk in r.iter_content(1024):
+							f.write(chunk)
+			self.queue.task_done()
+
+def main(account_id):
+	c = Client("206279665.74069ea.3e7744ba4dfd4d6384661e55ae69d5ed",queue)
+	#generate downloader thread
+	for i in range(5):
+		 	t = Downloader(queue,account_id+'/')
+		 	t.setDaemon(True)
+		 	t.start()
+	#start collecting
+	c.collect(account_id)
+	#termination
+	queue.join()
+
+main('nqhieu2001')
