@@ -18,7 +18,7 @@ class InstagrabApp(QtGui.QWidget):
 		account_id = str(self.input_edit.text())
 		self.log.append("Loading images for account "+account_id+".")
 		self.log.append("collecting..")
-		for i in range(5):
+		for i in range(3):
 		 	t = Downloader(self.queue,account_id+'/')
 		 	t.setDaemon(True)
 		 	t.start()

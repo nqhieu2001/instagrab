@@ -52,14 +52,11 @@ class Client:
 			user_id = self.retrieve_user_id(account_id)
 		url = self.build_url(user_id,self.access_token,last_id)
 		while (True):
-			r = requests.get(url)
+			r = requests.get(url,verify='cacert.pem')
 			resp = r.json()['data']
 			for item in resp:
 				if item['type'] == 'image':
-					#print item['images']['standard_resolution']['url']
 					self.queue.put(item['images']['standard_resolution']['url']) #queueing images to the downloading queue
-					# print " from ",
-					# print item['user']['username']
 				#update latest image
 				if (last_id == None):
 					last_id = item['id']
@@ -79,10 +76,8 @@ class Client:
 
 	def retrieve_user_id(self,account_id):
 		url = "https://api.instagram.com/v1/users/search?q=%s&access_token=%s&count=1"
-		r = requests.get(url %(account_id,self.access_token))
+		r = requests.get(url %(account_id,self.access_token),verify='cacert.pem')
 		return r.json()['data'][0]['id']
-
-
 
 
 #asynchoronous downloader
@@ -95,7 +90,7 @@ class Downloader(threading.Thread):
 	def run(self):
 		while True:
 			link = self.queue.get()
-			r = requests.get(link,stream=True)
+			r = requests.get(link,stream=True,verify='cacert.pem')
 			if r.status_code == 200:
 				filename = splitext(basename(urlparse(link).path))
 				filename = filename[0] + filename[1]
@@ -110,7 +105,7 @@ class Downloader(threading.Thread):
 def main(account_id):
 	c = Client("206279665.74069ea.3e7744ba4dfd4d6384661e55ae69d5ed",queue)
 	#generate downloader thread
-	for i in range(5):
+	for i in range(3):
 		 	t = Downloader(queue,account_id+'/')
 		 	t.setDaemon(True)
 		 	t.start()
@@ -123,4 +118,4 @@ def main(account_id):
 
 #collector
 if __name__ == '__main__':
-	main('nqhieu2001')
+	main('xolovestephi')
