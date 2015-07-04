@@ -19,7 +19,7 @@ class InstagrabApp(QtGui.QWidget):
 		self.log.append("Loading images for account "+account_id+".")
 		self.log.append("collecting..")
 		for i in range(3):
-		 	t = Downloader(self.queue,account_id+'/')
+		 	t = Downloader(self.queue)
 		 	t.setDaemon(True)
 		 	t.start()
 		#start collecting
@@ -52,6 +52,8 @@ class InstagrabApp(QtGui.QWidget):
 		self.show()
 
 		#setup signal slot
+		#enter -> start
+		self.input_edit.returnPressed.connect(self.start_button.click)
 		#has text -> enable button
 		self.input_edit.textChanged.connect(self.changeText)
 		#quit button to quit

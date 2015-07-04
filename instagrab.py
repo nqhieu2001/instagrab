@@ -56,7 +56,7 @@ class Client:
 			resp = r.json()['data']
 			for item in resp:
 				if item['type'] == 'image':
-					self.queue.put(item['images']['standard_resolution']['url']) #queueing images to the downloading queue
+					self.queue.put([item['images']['standard_resolution']['url'],account_id]) #queueing images to the downloading queue [link,account_id]
 				#update latest image
 				if (last_id == None):
 					last_id = item['id']
@@ -82,20 +82,20 @@ class Client:
 
 #asynchoronous downloader
 class Downloader(threading.Thread):
-	def __init__(self,queue,path):
+	def __init__(self,queue):
 		threading.Thread.__init__(self)
 		self.queue = queue
-		self.path = path
 
 	def run(self):
 		while True:
-			link = self.queue.get()
-			r = requests.get(link,stream=True,verify='cacert.pem')
+			target = self.queue.get()
+			path = target[1]+"/"
+			r = requests.get(target[0],stream=True,verify='cacert.pem')
 			if r.status_code == 200:
-				filename = splitext(basename(urlparse(link).path))
+				filename = splitext(basename(urlparse(target[0]).path))
 				filename = filename[0] + filename[1]
-				if not isfile(self.path+filename):
-					with open(self.path + filename, 'wb') as f:
+				if not isfile(path+filename):
+					with open(path + filename, 'wb') as f:
 						for chunk in r.iter_content(1024):
 							f.write(chunk)
 			self.queue.task_done()
@@ -106,7 +106,7 @@ def main(account_id):
 	c = Client("206279665.74069ea.3e7744ba4dfd4d6384661e55ae69d5ed",queue)
 	#generate downloader thread
 	for i in range(3):
-		 	t = Downloader(queue,account_id+'/')
+		 	t = Downloader(queue)
 		 	t.setDaemon(True)
 		 	t.start()
 	#start collecting
