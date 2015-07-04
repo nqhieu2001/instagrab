@@ -85,7 +85,7 @@ class Client:
 
 
 
-#downloader thread class
+#asynchoronous downloader
 class Downloader(threading.Thread):
 	def __init__(self,queue,path):
 		threading.Thread.__init__(self)
@@ -105,6 +105,8 @@ class Downloader(threading.Thread):
 							f.write(chunk)
 			self.queue.task_done()
 
+
+#main function 
 def main(account_id):
 	c = Client("206279665.74069ea.3e7744ba4dfd4d6384661e55ae69d5ed",queue)
 	#generate downloader thread
@@ -117,4 +119,8 @@ def main(account_id):
 	#termination
 	queue.join()
 
-main('nqhieu2001')
+
+
+#collector
+if __name__ == '__main__':
+	main('nqhieu2001')
