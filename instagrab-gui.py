@@ -23,7 +23,8 @@ class InstagrabApp(QtGui.QWidget):
 		 	t.setDaemon(True)
 		 	t.start()
 		#start collecting
-		self.client.collect(account_id)
+		filters = [self.images.isChecked(),self.videos.isChecked()]
+		self.client.collect(account_id,filters)
 		#termination
 		self.queue.join()
 		self.log.append("Loading images from account "+account_id+" completed.")
@@ -38,14 +39,19 @@ class InstagrabApp(QtGui.QWidget):
 		self.log.setEnabled(True)
 		self.log.setReadOnly(True)
 		self.quit_button = QtGui.QPushButton("Quit")
+		self.images = QtGui.QCheckBox("Images")
+		self.videos = QtGui.QCheckBox("Videos")
+
 
 		grid = QtGui.QGridLayout()
 		grid.setSpacing(10)
 		grid.addWidget(self.input_box,1,0)
 		grid.addWidget(self.input_edit,1,1,1,4)
-		grid.addWidget(self.log,2,0,3,4)
-		grid.addWidget(self.start_button,5,1)
-		grid.addWidget(self.quit_button,5,2)
+		grid.addWidget(self.images,2,1)
+		grid.addWidget(self.videos,2,2)
+		grid.addWidget(self.log,3,0,3,4)
+		grid.addWidget(self.start_button,6,1)
+		grid.addWidget(self.quit_button,6,2)
 
 		self.setLayout(grid)
 		self.setWindowTitle('Instagrab')    
@@ -64,7 +70,7 @@ class InstagrabApp(QtGui.QWidget):
 def main():
 	app = QtGui.QApplication(sys.argv)
 	ex = InstagrabApp()
-
+	ex.raise_()
 	sys.exit(app.exec_())
 
 if __name__ == '__main__':

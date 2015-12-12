@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 import ConfigParser
 from os.path import splitext,basename,isdir,isfile
 from os import makedirs
@@ -36,7 +37,7 @@ class Client:
 	def smaller(self,id1,id2,l):
 		return int(id1[0:-l])< int(id2[0:-l])
 
-	def collect(self,account_id):
+	def collect(self,account_id,filters):
 		cfg = ConfigParser.ConfigParser()
 		user_id = 0
 		last_id = None
@@ -50,13 +51,16 @@ class Client:
 		else:
 			makedirs(account_id)
 			user_id = self.retrieve_user_id(account_id)
+		#generate url for querying
 		url = self.build_url(user_id,self.access_token,last_id)
 		while (True):
 			r = requests.get(url,verify='cacert.pem')
 			resp = r.json()['data']
 			for item in resp:
-				if item['type'] == 'image':
-					self.queue.put([item['images']['standard_resolution']['url'],account_id]) #queueing images to the downloading queue [link,account_id]
+				if (item['type'] == 'image') and (filters[0] == True):
+					self.queue.put([item['images']['standard_resolution']['url'],account_id,item['created_time']]) #queueing images to the downloading queue [link,account_id,timestamp]
+				if (item['type'] == 'video') and (filters[1] == True):
+					self.queue.put([item['videos']['standard_resolution']['url'],account_id,item['created_time']]) #queueing videos to the downloading queue [link,account_id,timestamp]
 				#update latest image
 				if (last_id == None):
 					last_id = item['id']
@@ -92,8 +96,10 @@ class Downloader(threading.Thread):
 			path = target[1]+"/"
 			r = requests.get(target[0],stream=True,verify='cacert.pem')
 			if r.status_code == 200:
+				timestamp = datetime.fromtimestamp(float(target[2]))
+				timestamp = timestamp.strftime('%y%m%d')
 				filename = splitext(basename(urlparse(target[0]).path))
-				filename = filename[0] + filename[1]
+				filename = "[" +timestamp + "] " + filename[0] + filename[1]
 				if not isfile(path+filename):
 					with open(path + filename, 'wb') as f:
 						for chunk in r.iter_content(1024):
@@ -110,7 +116,7 @@ def main(account_id):
 		 	t.setDaemon(True)
 		 	t.start()
 	#start collecting
-	c.collect(account_id)
+	c.collect(account_id,[True,True])
 	#termination
 	queue.join()
 
@@ -118,4 +124,4 @@ def main(account_id):
 
 #collector
 if __name__ == '__main__':
-	main('xolovestephi')
+	main('socun89')
